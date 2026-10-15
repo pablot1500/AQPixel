@@ -1,31 +1,42 @@
 import { h, pick } from '../util.js';
-import { screen, npcHeader, button, backButton, toast } from '../ui.js';
-import { BUILDINGS } from '../data/town.js';
+import { updateHud } from '../ui.js';
+import { interiorScreen } from './interior.js';
+import { building } from '../data/town.js';
+import { iconCanvas } from '../sprites.js';
 import { STAT_IDS, STAT_INFO, trainCost, train } from '../state.js';
 
-export function trainerScreen(game, params = {}) {
+export function trainerScreen(game) {
   const p = game.player;
-  const building = BUILDINGS.find((b) => b.id === 'entrenador');
-  const line = params.line ?? pick(building.lines);
-  const cost = trainCost(p);
+  const b = building('entrenador');
+  const { view, dialog, scrollBody } = interiorScreen(game, {
+    roomId: 'entrenador', speaker: b.owner, greeting: pick(b.lines), title: b.name,
+  });
 
-  const doTrain = (stat) => {
-    const res = train(p, stat);
-    toast(res.msg, res.ok ? 'good' : 'bad');
-    if (res.ok) {
-      game.save();
-      game.refresh();
-    }
-  };
+  function render() {
+    const cost = trainCost(p);
+    scrollBody.replaceChildren(
+      h('p', { class: 'scroll-note' }, `Cada sesión suma 1 punto y cuesta ${cost} de oro. El precio sube con cada entrenamiento (llevás ${p.trained}).`),
+      h('div', { class: 'wares' },
+        ...STAT_IDS.map((id) => h('div', { class: 'ware' },
+          h('span', { class: 'stat-badge' }, STAT_INFO[id].short),
+          h('span', { class: 'ware-info' },
+            h('span', { class: 'ware-name' }, `${STAT_INFO[id].name} `, h('strong', { class: 'stat-num' }, p.stats[id])),
+            h('span', { class: 'ware-stats' }, STAT_INFO[id].desc)),
+          h('span', { class: 'ware-buy' },
+            h('span', { class: 'ware-price' }, iconCanvas('coin'), cost),
+            h('button', {
+              type: 'button', class: 'seal', disabled: p.gold < cost, id: `train-${id}`,
+              onclick: () => {
+                const res = train(p, id);
+                if (!res.ok) { dialog.say(pick(b.poor)); return; }
+                game.save();
+                updateHud(game);
+                dialog.say(b.trained[id]);
+                render();
+              },
+            }, '+1'))))));
+  }
 
-  return screen(game, 'trainer-screen',
-    npcHeader(building, line),
-    h('section', { class: 'panel stats-table' },
-      h('p', { class: 'hint' }, `Cada sesión cuesta ${cost} de oro y sube 25 de oro con cada entrenamiento. Llevás ${p.trained}.`),
-      ...STAT_IDS.map((id) => h('div', { class: 'stat-row' },
-        h('span', { class: 'stat-short' }, STAT_INFO[id].short),
-        h('span', { class: 'stat-value' }, p.stats[id]),
-        h('div', { class: 'stat-info' }, h('strong', null, STAT_INFO[id].name), h('span', null, STAT_INFO[id].desc)),
-        button(`+1 · ${cost}`, () => doTrain(id), { disabled: p.gold < cost, variant: 'buy' })))),
-    h('div', { class: 'row-actions' }, backButton(game)));
+  render();
+  return view;
 }

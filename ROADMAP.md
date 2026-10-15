@@ -20,6 +20,16 @@ Cada fase deja el juego jugable; las siguientes suman sistemas y contenido sin c
 - Economía: oro, venta a un cuarto del precio, descuentos por carisma, sumideros de oro.
 - Derrota sin castigo duro: volvés a la posada con media vida.
 
+## Fase 1.5 — Pueblo visual ✅
+
+- Villa Pixelia como escena: vista del pueblo desde lejos con edificios detallados y clickeables,
+  humo, fuego de la forja, fuente, banderas, vecinos paseando y un slime mascota.
+- Cada local es un interior propio con su dueño detrás del mostrador (parpadea y habla),
+  decoración acorde a lo que vende y un pergamino con la mercadería a la derecha.
+- Cuadro de diálogo de RPG: los dueños describen los objetos y reaccionan a las compras.
+- Tu casa muestra al héroe con el equipo puesto, la ficha de atributos y el inventario.
+- Tablón de misiones en la plaza (se habilita en la Fase 3).
+
 ## Fase 2 — Equipo y combate profundo
 
 - Ranuras de escudo, mascota y misceláneo.

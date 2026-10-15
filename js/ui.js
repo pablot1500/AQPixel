@@ -4,7 +4,7 @@ import { h } from './util.js';
 import { ELEMENTS } from './data/elements.js';
 import { ATTACK_TYPE_NAMES } from './data/items.js';
 import { maxHp, maxMp, xpToNext, LEVEL_CAP } from './state.js';
-import { iconCanvas, itemIcon, houseCanvas } from './sprites.js';
+import { iconCanvas, itemIcon } from './sprites.js';
 
 export function button(label, onclick, opts = {}) {
   return h('button', {
@@ -87,15 +87,6 @@ export function itemRow(item, { actions = [], tags = [], player } = {}) {
         item.lvl > 1 ? h('span', { class: lowLevel ? 'req req-bad' : 'req' }, ` · Nv ${item.lvl}`) : null),
       h('div', { class: 'item-desc' }, item.desc)),
     actions.length ? h('div', { class: 'item-actions' }, ...actions) : null);
-}
-
-export function npcHeader(building, line) {
-  return h('section', { class: 'npc panel' },
-    houseCanvas(building),
-    h('div', { class: 'npc-text' },
-      h('h1', { class: 'npc-title' }, building.name),
-      h('div', { class: 'npc-owner' }, building.owner),
-      line ? h('p', { class: 'npc-line' }, `«${line}»`) : null));
 }
 
 export function backButton(game, to = 'pueblo', label = 'Volver al pueblo') {

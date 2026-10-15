@@ -225,7 +225,7 @@ export function battleScreen(game, { zoneId }) {
     document.getElementById(id)?.click();
   }
   document.addEventListener('keydown', onKey);
-  game.onLeave = () => document.removeEventListener('keydown', onKey);
+  game.addCleanup(() => document.removeEventListener('keydown', onKey));
 
   renderActions();
   setTimeout(async () => {

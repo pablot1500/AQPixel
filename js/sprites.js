@@ -419,57 +419,6 @@ export function heroCanvas(weapon, armor, className) {
   return c;
 }
 
-// ---------- Edificios del pueblo ----------
-function shade(hex, amount) {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (v) => Math.max(0, Math.min(255, Math.round(v * amount)));
-  const r = f(n >> 16), g = f((n >> 8) & 255), b = f(n & 255);
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
-}
-
-export function houseCanvas(building) {
-  const W = 40, H = 32;
-  const c = makeCanvas(W, H, 'px house');
-  const ctx = c.getContext('2d');
-  const rect = (x, y, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
-  const ink = BASE.o;
-
-  // Pasto
-  rect(0, 28, W, 4, '#38b764');
-  rect(0, 28, W, 1, '#5aa83a');
-  // Pared
-  rect(5, 13, 30, 16, ink);
-  rect(6, 14, 28, 14, building.wall);
-  rect(6, 26, 28, 2, shade(building.wall, 0.8));
-  // Techo escalonado
-  for (let i = 0; i < 9; i++) {
-    rect(Math.max(0, 18 - i * 2), 4 + i, Math.min(W, 4 + i * 4), 1, ink);
-  }
-  for (let i = 0; i < 9; i++) {
-    const w = 2 + i * 4;
-    rect(20 - w / 2, 5 + i, w, 1, i < 2 ? shade(building.roof, 1.25) : building.roof);
-  }
-  rect(1, 13, 38, 2, ink);
-  rect(2, 13, 36, 1, shade(building.roof, 0.7));
-  // Chimenea
-  rect(27, 3, 4, 6, ink);
-  rect(28, 4, 2, 4, '#c2c9d6');
-  // Puerta
-  rect(16, 19, 8, 10, ink);
-  rect(17, 20, 6, 9, '#7a4b2a');
-  rect(21, 24, 1, 1, '#ffcd75');
-  // Cartel con ícono a la izquierda y ventana a la derecha
-  rect(7, 16, 10, 10, ink);
-  rect(8, 17, 8, 8, '#f0d8a8');
-  const icon = SPRITES[`i_${building.icon}`];
-  if (icon) paint(ctx, icon, { ...BASE, ...swatchFor(building.icon === 'orb' ? 'oscuridad' : 'fuego') }, 8, 17);
-  rect(26, 17, 7, 7, ink);
-  rect(27, 18, 5, 5, '#a6e6ff');
-  rect(29, 18, 1, 5, ink);
-  rect(27, 20, 5, 1, ink);
-  return c;
-}
-
 // ---------- Fondos de zona ----------
 export function backgroundCanvas(zone, className = 'px bg') {
   const W = 160, H = 90;

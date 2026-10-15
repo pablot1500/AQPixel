@@ -27,7 +27,10 @@ const app = document.getElementById('app');
 const game = {
   player: load(),
   current: null,
-  onLeave: null,
+  cleanups: [],
+  addCleanup(fn) {
+    game.cleanups.push(fn);
+  },
   go(name, params = {}) {
     game.current = { name, params };
     render();
@@ -50,8 +53,7 @@ const game = {
 };
 
 function render() {
-  game.onLeave?.();
-  game.onLeave = null;
+  game.cleanups.splice(0).forEach((fn) => fn());
   const { name, params } = game.current;
   const needsPlayer = name !== 'titulo';
   const view = needsPlayer && !game.player ? titleScreen(game) : SCREENS[name](game, params);

@@ -26,8 +26,9 @@ npm run build   # crea dist/aqpixel.html
 
 ## Bucle de juego
 
-1. **Pueblo**: posada (curarse), herrería (armas y armaduras), tienda de magia (hechizos y pociones),
-   entrenador (comprar puntos de atributo) y mochila (equipo, atributos y venta).
+1. **Pueblo**: una escena de Villa Pixelia donde tocás cada edificio para entrar. Adentro te atiende su dueño
+   y a la derecha hay un pergamino con lo que ofrece: posada (curarse), herrería (armas y armaduras),
+   tienda de magia (hechizos y pociones), gimnasio (comprar puntos de atributo) y tu casa (equipo, atributos y venta).
 2. **Puerta del pueblo**: elegís una zona según su nivel y elemento.
 3. **Cazar**: combate por turnos. Atacá con el arma, lanzá el hechizo, tomá pociones o huí.
    El panel del enemigo muestra a qué es débil; los botones marcan ×1,5 cuando tu elemento le pega fuerte.
@@ -45,9 +46,14 @@ css/style.css          Estilos y animaciones
 js/main.js             Arranque y navegación entre pantallas
 js/state.js            Jugador, fórmulas derivadas, inventario y guardado
 js/combat.js           Lógica de combate (sin interfaz): devuelve eventos que la pantalla reproduce
-js/sprites.js          Pixel art como grillas de texto, edificios y fondos dibujados por código
+js/sprites.js          Sprites chicos como grillas de texto (héroe, monstruos, íconos) y fondos de combate
+js/art/paint.js        Primitivas y piezas de pixel art: piedra, tejas, entramado, ventanas, árboles...
+js/art/town.js         Villa Pixelia: composición, zonas clickeables y animaciones
+js/art/interiors.js    Interiores de cada local
+js/art/npcs.js         Retratos de los dueños (parpadean y hablan)
+js/scene.js            Escenario animado sobre canvas
 js/ui.js               Componentes compartidos (HUD, barras, filas de objetos, avisos)
-js/screens/            Una pantalla por archivo
+js/screens/            Una pantalla por archivo (interior.js arma la estructura común de los locales)
 js/data/               Contenido: elementos, objetos, monstruos, zonas y pueblo
 tools/build-single.mjs Empaquetado en un solo HTML
 ```
