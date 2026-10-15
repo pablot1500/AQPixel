@@ -8,6 +8,7 @@ import { backpackScreen } from './screens/backpack.js';
 import { mapScreen } from './screens/map.js';
 import { zoneScreen } from './screens/zone.js';
 import { battleScreen } from './screens/battle.js';
+import { applyBackdrop } from './art/patterns.js';
 
 const SCREENS = {
   titulo: titleScreen,
@@ -56,7 +57,10 @@ function render() {
   game.cleanups.splice(0).forEach((fn) => fn());
   const { name, params } = game.current;
   const needsPlayer = name !== 'titulo';
-  const view = needsPlayer && !game.player ? titleScreen(game) : SCREENS[name](game, params);
+  const shown = needsPlayer && !game.player ? 'titulo' : name;
+  const view = shown === 'titulo' ? titleScreen(game) : SCREENS[name](game, params);
+  app.dataset.screen = shown;
+  applyBackdrop(params.zoneId && (shown === 'zona' || shown === 'batalla') ? params.zoneId : shown);
   app.replaceChildren(view);
 }
 

@@ -6,7 +6,7 @@ import { interiorScreen, ribbons } from './interior.js';
 import { building } from '../data/town.js';
 import { ITEMS, SLOT_NAMES, ATTACK_TYPE_NAMES } from '../data/items.js';
 import { ELEMENTS } from '../data/elements.js';
-import { heroCanvas, itemIcon } from '../sprites.js';
+import { heroLook, itemIcon } from '../sprites.js';
 import {
   STAT_IDS, STAT_INFO, equip, sell, sellPrice, isEquipped, meetsLevel, spendPoint,
   critChance, equippedItem, playerDefense, playerResist, maxHp, maxMp,
@@ -19,19 +19,19 @@ export function backpackScreen(game) {
   const b = building('mochila');
   let tab = p.statPoints > 0 ? 'ficha' : 'weapon';
   let confirmSell = null;
-  const hero = () => heroCanvas(equippedItem(p, 'weapon'), equippedItem(p, 'armor'));
+  const look = () => heroLook(equippedItem(p, 'weapon'), equippedItem(p, 'armor'));
 
   const greeting = p.statPoints > 0
     ? `Tenés ${p.statPoints} puntos de atributo para repartir. Están en la ficha.`
     : pick(b.lines);
   const { view, stage, dialog, scrollBody } = interiorScreen(game, {
-    roomId: 'mochila', speaker: p.name, greeting, title: b.name, state: { hero: hero() },
+    roomId: 'mochila', speaker: p.name, greeting, title: b.name, state: { heroLook: look() },
   });
 
   function afterChange(message) {
     game.save();
     updateHud(game);
-    stage.state.hero = hero();
+    stage.state.heroLook = look();
     stage.redraw();
     if (message) dialog.say(message);
     render();

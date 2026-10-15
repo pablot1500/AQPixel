@@ -4,7 +4,9 @@ import { ZONE_BY_ID } from '../data/zones.js';
 import { MONSTERS } from '../data/monsters.js';
 import { ITEMS } from '../data/items.js';
 import { ELEMENTS, ELEMENT_IDS } from '../data/elements.js';
-import { backgroundCanvas, monsterCanvas, heroCanvas, spriteCanvas, swatchFor, itemIcon } from '../sprites.js';
+import { monsterCanvas, heroCanvas, spriteCanvas, swatchFor, itemIcon } from '../sprites.js';
+import { battlefieldFor } from '../art/battlefield.js';
+import { createStage } from '../scene.js';
 import { startBattle, playerTurn, applyRewards, applyDefeat } from '../combat.js';
 import { equippedItem, maxHp, maxMp } from '../state.js';
 
@@ -21,10 +23,11 @@ export function battleScreen(game, { zoneId }) {
   let busy = true;
 
   // ---- Escena ----
-  const heroSprite = heroCanvas(weapon, equippedItem(p, 'armor'), 'px fighter fighter-hero bob');
-  const enemySprite = monsterCanvas(monster, 'px fighter fighter-enemy bob bob-1');
+  const heroSprite = heroCanvas(weapon, equippedItem(p, 'armor'), 'px fighter fighter-hero', game);
+  const enemySprite = monsterCanvas(monster, 'px fighter fighter-enemy', game);
+  const field = createStage(game, { ...battlefieldFor(zone), className: 'px scene-bg' });
   const fx = h('div', { class: 'fx-layer', 'aria-hidden': 'true' });
-  const scene = h('div', { class: 'scene' }, backgroundCanvas(zone, 'px scene-bg'), heroSprite, enemySprite, fx);
+  const scene = h('div', { class: 'scene' }, field.canvas, heroSprite, enemySprite, fx);
   const sprites = { player: heroSprite, enemy: enemySprite };
 
   // ---- Panel del enemigo ----
@@ -117,11 +120,27 @@ export function battleScreen(game, { zoneId }) {
 
   function burst(target, element) {
     const pos = POS[target];
-    const el = spriteCanvas('burst', swatchFor(element), 'px burst');
+    const colors = swatchFor(element);
+    const el = spriteCanvas('burst', colors, 'px burst');
     el.style.left = `${pos.x}%`;
     el.style.top = `${pos.y}%`;
     fx.append(el);
-    setTimeout(() => el.remove(), 500);
+    // Chispas del color del elemento que salen disparadas
+    const sparks = [];
+    for (let i = 0; i < 8; i++) {
+      const ang = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = 26 + Math.random() * 22;
+      const spark = h('span', {
+        class: 'spark',
+        style: {
+          left: `${pos.x}%`, top: `${pos.y}%`, background: i % 2 ? colors.c : colors.a,
+          '--dx': `${Math.cos(ang) * dist}px`, '--dy': `${Math.sin(ang) * dist}px`,
+        },
+      });
+      sparks.push(spark);
+    }
+    fx.append(...sparks);
+    setTimeout(() => { el.remove(); sparks.forEach((s) => s.remove()); }, 600);
   }
 
   async function play(evts) {
@@ -146,6 +165,7 @@ export function battleScreen(game, { zoneId }) {
           const color = ev.element !== 'neutral' ? ELEMENTS[ev.element].color : '#f4f4f4';
           burst(ev.target, ev.element);
           retrigger(sprites[ev.target], 'hit');
+          if (ev.crit || ev.mult >= 1.5) retrigger(scene, 'shake');
           const label = ev.mult === 0 ? 'INMUNE' : `${ev.amount}${ev.crit ? '!' : ''}`;
           float(ev.target, label, `${ev.crit ? 'is-crit' : ''} ${ev.mult >= 1.5 ? 'is-super' : ''}`, ev.crit ? '#ffcd75' : color);
           if (ev.target === 'enemy') enemyBarSlot.replaceChildren(bar('hp', e.hp, e.maxHp, 'VIDA'));

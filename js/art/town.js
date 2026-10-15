@@ -35,12 +35,35 @@ const WALKERS = [
   { path: [[60, 152], [96, 156]], speed: 6, shirt: '#38b764', hair: '#1a1c2c' },
 ];
 
-export function drawTownStatic(P) {
+export const TOWN_MAX_W = 640;
+
+// Ubicación de lo que rodea al pueblo según cuánto espacio sobra a cada lado.
+export function townLayout(W) {
+  const ox = Math.floor((W - TOWN_W) / 2);
+  const right = ox + TOWN_W;
+  return {
+    W,
+    ox,
+    windmill: ox >= 56 ? { cx: Math.round(ox * 0.45), base: 104 } : null,
+    field: ox >= 44 ? { x: 6, y: 130, w: ox - 14, h: 40 } : null,
+    pond: ox >= 50 ? pondAt(right + Math.round(ox / 2), Math.min(40, Math.round(ox / 2) - 8)) : null,
+  };
+}
+
+const pondAt = (cx, rx) => ({ cx, cy: 120, rx, ry: Math.max(8, Math.round(rx / 3)) });
+
+export function drawTownStatic(P, W = TOWN_W) {
   const rand = seeded(7);
-  drawSkyAndHills(P, rand);
-  drawGround(P, rand);
+  const L = townLayout(W);
+  drawSkyAndHills(P, rand, W);
+  drawGround(P, rand, W);
+  if (L.ox > 0) drawSurroundings(P, L);
+
+  P.ctx.save();
+  P.ctx.translate(L.ox, 0);
   drawPaths(P, rand);
   drawPlaza(P, rand);
+  drawShadows(P);
 
   // Fila del fondo
   pine(P, 94, 92, 26);
@@ -68,45 +91,204 @@ export function drawTownStatic(P) {
   tree(P, 66, 200, 12, rand, ['#2a5a2a', '#3a7d3a', '#5aa83a', '#a7f070']);
   bush(P, 40, 194, 5, rand);
   drawGate(P, rand);
+  P.ctx.restore();
+
+  if (L.ox > 0) drawWallExtension(P, seeded(3), L.ox + TOWN_W, W);
+}
+
+// Sombras de los edificios sobre el pasto (luz desde arriba a la izquierda).
+function drawShadows(P) {
+  const shadowC = 'rgba(20, 50, 28, 0.32)';
+  for (const [x, y, w] of [[24, 94, 66], [104, 94, 108], [226, 94, 82], [10, 155, 88], [232, 152, 56]]) {
+    P.rect(x + 4, y, w, 4, shadowC);
+    P.dither(x + 4, y + 4, w, 2, shadowC, 0);
+  }
+}
+
+// ---------- Alrededores: molino, trigal, estanque y bosque ----------
+function clipPoly(P, pts, fn) {
+  const { ctx } = P;
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.clip();
+  fn();
+  ctx.restore();
+}
+
+function drawSurroundings(P, L) {
+  const rand = seeded(31);
+  const avoid = [];
+  if (L.field) avoid.push([L.field.x - 4, L.field.y - 14, L.field.w + 8, L.field.h + 22]);
+  if (L.windmill) avoid.push([L.windmill.cx - 16, L.windmill.base - 56, 32, 64]);
+  if (L.pond) avoid.push([L.pond.cx - L.pond.rx - 8, L.pond.cy - L.pond.ry - 12, L.pond.rx * 2 + 16, L.pond.ry * 2 + 24]);
+  avoid.push([L.ox - 2, 0, TOWN_W + 4, 200]);
+  avoid.push([L.ox + TOWN_W, 168, L.W, 40]);
+
+  // Árboles en profundidad: primero los de atrás
+  const spots = [];
+  for (let y = 62; y <= 204; y += 14) {
+    for (let x = 4 + ((y / 14) % 2) * 8; x < L.W; x += 18) {
+      const jx = x + Math.floor(rand() * 8) - 4;
+      const jy = y + Math.floor(rand() * 6);
+      const inside = avoid.some(([ax, ay, aw, ah]) => jx > ax - 6 && jx < ax + aw + 6 && jy > ay && jy < ay + ah + 10);
+      if (!inside && rand() < 0.8) spots.push([jx, jy, rand()]);
+    }
+  }
+  if (L.field) drawField(P, rand, L.field);
+  if (L.pond) drawPond(P, rand, L.pond);
+  spots.sort((a, b) => a[1] - b[1]).forEach(([x, y, r]) => {
+    if (r < 0.4) pine(P, x, y, 18 + Math.floor(r * 20));
+    else if (r < 0.85) tree(P, x, y, 10 + Math.floor(r * 6), rand, r < 0.6 ? undefined : ['#2a5a2a', '#3a7d3a', '#5aa83a', '#a7f070']);
+    else bush(P, x, y - 3, 4, rand, r < 0.93 ? '#ef7d57' : null);
+  });
+  if (L.windmill) drawWindmill(P, rand, L.windmill);
+}
+
+function drawWindmill(P, rand, { cx, base }) {
+  P.ellipse(cx + 4, base + 1, 14, 3, 'rgba(20, 50, 28, 0.32)');
+  const body = [[cx - 12, base], [cx - 7, base - 40], [cx + 7, base - 40], [cx + 12, base]];
+  P.poly([[cx - 13, base + 1], [cx - 8, base - 41], [cx + 8, base - 41], [cx + 13, base + 1]], INK);
+  clipPoly(P, body, () => {
+    stones(P, cx - 12, base - 40, 24, 40, { base: '#e8dcc8', dark: '#c8b8a0', light: '#f8f0e0', mortar: '#a89880' }, rand, 5);
+    P.dither(cx + 4, base - 40, 8, 40, '#b8a890', 0);
+  });
+  // Puerta y ventanas
+  door(P, cx - 3, base - 11, 7, 11, { color: '#7a4b2a', arch: true, rand });
+  windowPane(P, cx - 2, base - 28, 4, 5, { lit: false });
+  // Balconcito y techo cónico
+  P.rect(cx - 10, base - 41, 20, 2, INK);
+  P.rect(cx - 9, base - 41, 18, 1, PAL.woodLight);
+  P.poly([[cx - 11, base - 40], [cx, base - 56], [cx + 11, base - 40]], INK);
+  P.poly([[cx - 9, base - 41], [cx, base - 54], [cx + 9, base - 41]], '#a0503a');
+  P.poly([[cx - 9, base - 41], [cx, base - 54], [cx - 2, base - 41]], '#c87050');
+  for (let y = base - 51; y < base - 41; y += 3) P.rect(cx - Math.round((y - (base - 54)) * 0.65), y, Math.round((y - (base - 54)) * 1.3), 1, '#7a3a2a');
+  // Bolsas de harina y fardos
+  for (const [x, y] of [[cx + 14, base - 2], [cx - 22, base - 1]]) {
+    P.blob(x, y - 3, 4, 3, '#e8c060');
+    P.ellipse(x, y - 3, 2, 2, '#c89a40');
+    P.px(x, y - 3, '#e8c060');
+  }
+  P.blob(cx + 9, base - 3, 2, 3, '#f4f0e0');
+  P.px(cx + 9, base - 6, '#c8b8a0');
+}
+
+function drawField(P, rand, { x, y, w, h }) {
+  P.rect(x, y, w, h, '#8a6238');
+  for (let row = 0; row < h; row += 5) {
+    P.rect(x, y + row + 4, w, 1, '#6e4a28');
+    for (let cx = x + 1 + (row % 2); cx < x + w - 1; cx += 2) {
+      const sh = 3 + Math.floor(rand() * 2);
+      P.rect(cx, y + row + 4 - sh, 1, sh, rand() < 0.3 ? '#c09a40' : '#e0b850');
+      P.px(cx, y + row + 3 - sh, '#ffcd75');
+    }
+  }
+  fence(P, x - 2, y - 9, w + 4);
+  fence(P, x - 2, y + h - 2, w + 4);
+  // Espantapájaros
+  const sx = x + Math.round(w * 0.6), sy = y + 16;
+  P.rect(sx, sy - 14, 2, 18, PAL.woodDark);
+  P.rect(sx - 6, sy - 10, 14, 2, PAL.woodDark);
+  P.rect(sx - 4, sy - 10, 10, 8, INK);
+  P.rect(sx - 3, sy - 9, 8, 6, '#3b5dc9');
+  P.px(sx - 1, sy - 7, '#ffcd75');
+  P.blob(sx + 1, sy - 15, 3, 3, '#e8c878');
+  P.px(sx, sy - 15, INK);
+  P.px(sx + 2, sy - 15, INK);
+  P.rect(sx - 4, sy - 19, 11, 2, INK);
+  P.rect(sx - 3, sy - 19, 9, 1, '#8a5a32');
+  P.rect(sx - 1, sy - 22, 5, 3, '#8a5a32');
+  P.rect(sx - 1, sy - 22, 5, 1, INK);
+}
+
+function drawPond(P, rand, { cx, cy, rx, ry }) {
+  P.ellipse(cx, cy + 1, rx + 3, ry + 3, '#5d6175');
+  P.ellipse(cx, cy, rx + 2, ry + 2, '#8b8fa3');
+  for (let i = 0; i < rx; i++) {
+    const ang = (i / rx) * Math.PI * 2;
+    P.px(cx + Math.round(Math.cos(ang) * (rx + 2)), cy + Math.round(Math.sin(ang) * (ry + 2)), '#b4b8c8');
+  }
+  P.ellipse(cx, cy, rx, ry, '#3b5dc9');
+  P.ellipse(cx, cy - 1, rx - 3, Math.max(1, ry - 3), '#41a6f6');
+  P.ellipse(cx - Math.round(rx / 3), cy - 2, Math.round(rx / 4), 1, '#73c6ff');
+  // Nenúfares con flor
+  for (const [dx, dy] of [[-rx * 0.5, 2], [rx * 0.45, -2], [rx * 0.1, ry * 0.5]]) {
+    const lx = cx + Math.round(dx), ly = cy + Math.round(dy);
+    P.ellipse(lx, ly, 3, 1, '#38b764');
+    P.px(lx + 1, ly, '#41a6f6');
+  }
+  P.px(cx - Math.round(rx * 0.5), cy + 1, '#f080b0');
+  P.px(cx - Math.round(rx * 0.5) + 1, cy + 1, '#ffffff');
+  // Juncos
+  for (let i = 0; i < 7; i++) {
+    const side = i % 2 ? 1 : -1;
+    const x = cx + side * (rx - 2 - (i % 3) * 3);
+    const top = cy - 6 - Math.floor(rand() * 6);
+    P.rect(x, top, 1, cy + 2 - top, '#2e7a3a');
+    if (i % 3 === 0) P.rect(x, top, 1, 3, '#7a4b2a');
+  }
+  // Muelle de madera
+  P.rect(cx + Math.round(rx * 0.3), cy + ry - 4, 6, 10, INK);
+  planks(P, cx + Math.round(rx * 0.3) + 1, cy + ry - 4, 4, 9, { base: '#a0703c', dark: '#6e4424', light: '#c08a50' }, rand, { vertical: false, size: 3 });
+}
+
+function drawWallExtension(P, rand, x0, W) {
+  if (W <= x0) return;
+  P.rect(x0, 178, W - x0, 22, INK);
+  stones(P, x0, 179, W - x0, 21, STONE_GREY, rand, 5);
+  for (let x = x0 + 1; x < W; x += 6) {
+    P.rect(x, 174, 4, 5, INK);
+    P.rect(x + 1, 175, 2, 4, '#8b8fa3');
+  }
 }
 
 // ---------- Cielo, montañas y suelo ----------
-function drawSkyAndHills(P, rand) {
+function drawSkyAndHills(P, rand, W) {
   const bands = ['#5fb4ef', '#72c0f2', '#86ccf6', '#9ad6fa', '#b0e0fb'];
-  bands.forEach((c, i) => P.rect(0, i * 7, 320, 7, c));
-  for (let i = 1; i < bands.length; i++) P.dither(0, i * 7 - 1, 320, 2, bands[i], i);
+  bands.forEach((c, i) => P.rect(0, i * 7, W, 7, c));
+  for (let i = 1; i < bands.length; i++) P.dither(0, i * 7 - 1, W, 2, bands[i], i);
 
-  // Cordillera lejana con nieve
-  const far = [[0, 30], [24, 18], [46, 26], [72, 12], [100, 24], [128, 14], [156, 26], [184, 10], [214, 24], [240, 16], [268, 26], [296, 12], [320, 22], [320, 44], [0, 44]];
-  P.poly(far, '#8aa6c8');
-  for (const [px, py] of far.slice(1, 13)) {
-    if (py < 20) P.poly([[px - 5, py + 5], [px, py], [px + 5, py + 5], [px + 2, py + 4], [px, py + 6], [px - 2, py + 4]], '#eef6ff');
+  // Cordillera lejana con nieve (se genera a lo ancho de la pantalla)
+  const far = [[0, 30]];
+  let up = true;
+  for (let x = 20; x < W; x += 24 + Math.floor(rand() * 8)) {
+    far.push([x, up ? 10 + Math.floor(rand() * 8) : 22 + Math.floor(rand() * 6)]);
+    up = !up;
   }
-  const near = [[0, 36], [30, 28], [60, 34], [90, 26], [130, 34], [170, 27], [210, 35], [250, 26], [290, 33], [320, 28], [320, 48], [0, 48]];
+  far.push([W, 24], [W, 44], [0, 44]);
+  P.poly(far, '#8aa6c8');
+  for (const [px, py] of far.slice(1, -3)) {
+    if (py < 20) P.poly([[px - 5, py + 5], [px, py], [px + 5, py + 5], [px + 2, py + 4], [px, py + 6], [px - 2, py + 4]], '#eef6ff');
+    if (py < 20) P.line(px, py + 1, px + 6, py + 12, '#7a96b8');
+  }
+  const near = [[0, 36]];
+  for (let x = 30; x < W; x += 34 + Math.floor(rand() * 12)) near.push([x, 26 + Math.floor(rand() * 9)]);
+  near.push([W, 30], [W, 48], [0, 48]);
   P.poly(near, '#6a8aa8');
-  P.dither(0, 38, 320, 8, '#5a7a98', 0);
+  P.dither(0, 38, W, 8, '#5a7a98', 0);
 
   // Línea de bosque
-  for (let x = -4; x < 324; x += 7) {
+  for (let x = -4; x < W + 4; x += 7) {
     const r = 5 + Math.floor(rand() * 4);
     P.ellipse(x, 46 - Math.floor(rand() * 4), r, r - 1, '#24603a');
   }
-  for (let x = 0; x < 324; x += 9) {
+  for (let x = 0; x < W + 4; x += 9) {
     P.ellipse(x + 3, 46 - Math.floor(rand() * 3), 3, 2, '#2e7a3a');
   }
 }
 
-function drawGround(P, rand) {
-  P.rect(0, 48, 320, 152, PAL.grass);
-  P.rect(0, 48, 320, 2, '#24603a');
-  P.dither(0, 50, 320, 3, '#3a7d3a', 0);
-  for (let i = 0; i < 900; i++) {
-    const x = Math.floor(rand() * 320), y = 52 + Math.floor(rand() * 148);
+function drawGround(P, rand, W) {
+  P.rect(0, 48, W, 152, PAL.grass);
+  P.rect(0, 48, W, 2, '#24603a');
+  P.dither(0, 50, W, 3, '#3a7d3a', 0);
+  for (let i = 0; i < Math.round(W * 2.8); i++) {
+    const x = Math.floor(rand() * W), y = 52 + Math.floor(rand() * 148);
     P.px(x, y, rand() < 0.6 ? PAL.grassDark : PAL.grassLight);
   }
   // Matas de pasto
-  for (let i = 0; i < 70; i++) {
-    const x = Math.floor(rand() * 320), y = 56 + Math.floor(rand() * 144);
+  for (let i = 0; i < Math.round(W / 4.5); i++) {
+    const x = Math.floor(rand() * W), y = 56 + Math.floor(rand() * 144);
     P.px(x, y, '#2e7a3a');
     P.px(x + 2, y, '#2e7a3a');
     P.px(x + 1, y - 1, PAL.grassLight);
@@ -514,15 +696,90 @@ function drawFountainBase(P) {
 }
 
 // ---------- Animación ----------
-export function drawTownFrame(P, t) {
-  // Nubes que se desplazan
-  [[20, 8, 0.6], [150, 4, 0.4], [250, 12, 0.5]].forEach(([x0, y, speed], i) => {
-    const x = ((x0 + t * speed * 4) % 360) - 30;
+export function drawTownFrame(P, t, state = {}) {
+  const L = state.layout ?? townLayout(TOWN_W);
+  const W = L.W;
+  // Nubes que se desplazan a lo ancho
+  const clouds = Math.max(3, Math.round(W / 110));
+  for (let i = 0; i < clouds; i++) {
+    const speed = 0.4 + (i % 3) * 0.1;
+    const x = ((i * (W / clouds) + 20 + t * speed * 4) % (W + 40)) - 30;
+    const y = [8, 4, 12][i % 3];
     P.ellipse(x, y + 2, 10, 3, '#e8f6ff');
     P.ellipse(x + 6, y, 7, 3, '#ffffff');
     P.ellipse(x - 5, y + 1, 6, 2, '#ffffff');
-    if (i === 1) P.ellipse(x + 14, y + 2, 5, 2, '#ffffff');
-  });
+    if (i % 2) P.ellipse(x + 14, y + 2, 5, 2, '#ffffff');
+  }
+  // Bandada de pájaros
+  for (let i = 0; i < 3; i++) {
+    const bx = ((t * 11 + i * 9) % (W + 60)) - 30;
+    const by = 22 + i * 3 + Math.round(Math.sin(t * 2 + i) * 2);
+    const up = Math.floor(t * 6 + i) % 2;
+    P.px(bx, by, INK);
+    P.px(bx - 1, by - up, INK);
+    P.px(bx + 1, by - up, INK);
+    P.px(bx - 2, by - 1 + up, INK);
+    P.px(bx + 2, by - 1 + up, INK);
+  }
+  if (L.ox > 0) drawSurroundingsFrame(P, t, L);
+
+  P.ctx.save();
+  P.ctx.translate(L.ox, 0);
+  drawCoreFrame(P, t);
+  P.ctx.restore();
+}
+
+function drawSurroundingsFrame(P, t, L) {
+  // Aspas del molino girando
+  if (L.windmill) {
+    const { cx, base } = L.windmill;
+    const hx = cx, hy = base - 38;
+    for (let k = 0; k < 4; k++) {
+      const a = t * 1.1 + (k * Math.PI) / 2;
+      const ux = Math.cos(a), uy = Math.sin(a);
+      const px = -uy, py = ux;
+      const r0 = 3, r1 = 24, half = 3;
+      const pts = [[hx + ux * r0, hy + uy * r0], [hx + ux * r1, hy + uy * r1], [hx + ux * r1 + px * half * 2, hy + uy * r1 + py * half * 2], [hx + ux * (r0 + 4) + px * half * 2, hy + uy * (r0 + 4) + py * half * 2]];
+      P.poly(pts.map(([x, y]) => [x + (x > hx ? 1 : -1) * 0.5, y + (y > hy ? 1 : -1) * 0.5]), INK);
+      P.poly(pts, '#e8dcc0');
+      P.line(hx, hy, hx + ux * r1, hy + uy * r1, '#5d3a1f');
+      for (let r = 8; r < r1; r += 5) P.line(hx + ux * r, hy + uy * r, hx + ux * r + px * half * 2, hy + uy * r + py * half * 2, '#a08a6a');
+    }
+    P.blob(hx, hy, 2, 2, '#5d3a1f');
+    P.px(hx, hy, '#ffcd75');
+  }
+  // Ráfaga de viento sobre el trigal
+  if (L.field) {
+    const { x, y, w, h } = L.field;
+    const band = x + ((t * 22) % (w + 30)) - 15;
+    for (let row = 0; row < h; row += 5) {
+      for (let cx = Math.max(x + 1, Math.round(band) + (row % 2)); cx < Math.min(x + w - 1, band + 12); cx += 2) {
+        P.px(cx + 1, y + row + 4 - 4, '#fff0a0');
+      }
+    }
+  }
+  // Patos en el estanque
+  if (L.pond) {
+    const { cx, cy, rx, ry } = L.pond;
+    for (let i = 0; i < 2; i++) {
+      const a = t * (0.35 + i * 0.12) + i * 2.4;
+      const dx = Math.round(Math.cos(a) * (rx - 7));
+      const dy = Math.round(Math.sin(a) * Math.max(1, ry - 4));
+      const x = cx + dx, y = cy + dy;
+      const dir = -Math.sin(a) >= 0 ? 1 : -1;
+      P.rect(x - dir * 4, y + 2, 3, 1, '#73c6ff');
+      P.ellipse(x, y, 3, 1, '#f4f4f4');
+      P.px(x - dir * 2, y + 1, '#c2c9d6');
+      P.rect(x + dir * 2, y - 3, 2, 3, '#f4f4f4');
+      P.px(x + dir * 2 + (dir > 0 ? 1 : 0), y - 3, i ? '#38b764' : '#f4f4f4');
+      P.px(x + dir * 4, y - 2, '#ef7d57');
+      P.px(x + dir * 3 - (dir > 0 ? 0 : 1), y - 3, INK);
+    }
+    if (Math.floor(t * 2) % 3 === 0) P.px(cx + rx - 10, cy - 2, '#ffffff');
+  }
+}
+
+function drawCoreFrame(P, t) {
 
   smoke(P, 124, 12, t, '#d8d8e0', 0);
   smoke(P, 190, 16, t, '#d8d8e0', 1.3);
@@ -583,6 +840,48 @@ export function drawTownFrame(P, t) {
   P.ellipse(sx - 1, sy - 1, 2, 1, '#a7f070');
   P.px(sx - 1, sy, INK);
   P.px(sx + 2, sy, INK);
+
+  // Gallinas picoteando frente al gimnasio
+  for (let i = 0; i < 3; i++) {
+    const gx = 78 + i * 8 + Math.round(Math.sin(t * 0.4 + i * 2) * 5);
+    const gy = 166 + (i % 2) * 4;
+    const peck = (Math.floor(t * 3 + i * 1.7) % 4) === 0;
+    const dir = Math.cos(t * 0.4 + i * 2) > 0 ? 1 : -1;
+    P.ellipse(gx, gy + 3, 3, 1, 'rgba(20, 50, 28, 0.3)');
+    P.blob(gx, gy, 2, 2, '#f4f4f4');
+    P.px(gx - dir * 2, gy - 1, '#dcdce4');
+    const hx = gx + dir * 2, hy = gy - (peck ? 0 : 3);
+    P.rect(hx, hy, 2, 2, '#f4f4f4');
+    P.px(hx + (dir > 0 ? 0 : 1), hy - 1, '#e04a5f');
+    P.px(hx + (dir > 0 ? 2 : -1), hy + 1, '#ffcd75');
+    P.px(hx + (dir > 0 ? 1 : 0), hy, INK);
+    P.px(gx, gy + 3, '#ffcd75');
+  }
+
+  // Gato en el techo de la casa
+  const tail = Math.round(Math.sin(t * 2.5) * 2);
+  P.rect(250, 100, 6, 5, INK);
+  P.rect(251, 101, 4, 4, '#ef7d57');
+  P.rect(251, 97, 5, 4, INK);
+  P.rect(252, 98, 3, 3, '#ef7d57');
+  P.px(251, 96, INK);
+  P.px(255, 96, INK);
+  P.px(253, 99, (t % 4) < 0.2 ? '#ef7d57' : INK);
+  P.line(256, 104, 259, 101 + tail, '#d0743a');
+
+  // Mariposas sobre los canteros
+  [[110, 182], [214, 184], [60, 176]].forEach(([bx, by], i) => {
+    const x = bx + Math.round(Math.sin(t * 0.9 + i * 2) * 10);
+    const y = by + Math.round(Math.cos(t * 1.4 + i) * 4);
+    const wing = Math.floor(t * 8 + i) % 2;
+    const c = ['#ffcd75', '#f080b0', '#73eff7'][i];
+    P.px(x, y, INK);
+    P.px(x - 1, y - wing, c);
+    P.px(x + 1, y - wing, c);
+  });
+
+  // Ventanas de la posada que titilan como si hubiera gente adentro
+  if (Math.sin(t * 1.7) > 0.85) P.rect(131, 80, 5, 3, '#ffe9a8');
 }
 
 function smoke(P, x, y, t, color, offset, scale = 1) {

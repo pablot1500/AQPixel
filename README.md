@@ -46,9 +46,13 @@ css/style.css          Estilos y animaciones
 js/main.js             Arranque y navegación entre pantallas
 js/state.js            Jugador, fórmulas derivadas, inventario y guardado
 js/combat.js           Lógica de combate (sin interfaz): devuelve eventos que la pantalla reproduce
-js/sprites.js          Sprites chicos como grillas de texto (héroe, monstruos, íconos) y fondos de combate
+js/sprites.js          Arma los lienzos del héroe, los monstruos y los íconos con los colores de cada elemento
 js/art/paint.js        Primitivas y piezas de pixel art: piedra, tejas, entramado, ventanas, árboles...
-js/art/town.js         Villa Pixelia: composición, zonas clickeables y animaciones
+js/art/creatures.js    Héroe y monstruos (32×32, animados)
+js/art/icons.js        Íconos de objetos (16×16)
+js/art/battlefield.js  Fondos de combate por zona con clima animado
+js/art/patterns.js     Fondos de página en pixel art para cada lugar
+js/art/town.js         Villa Pixelia: composición adaptable al ancho, zonas clickeables y animaciones
 js/art/interiors.js    Interiores de cada local
 js/art/npcs.js         Retratos de los dueños (parpadean y hablan)
 js/scene.js            Escenario animado sobre canvas
@@ -65,5 +69,5 @@ Todo el contenido vive en `js/data/` y no requiere tocar el motor:
 - **Monstruo nuevo**: agregá una entrada en `monsters.js`. Podés reutilizar un sprite existente con otra paleta (`pal`).
 - **Zona nueva**: agregá una entrada en `zones.js` con sus monstruos y los colores del fondo.
 - **Objeto nuevo**: agregá una llamada a `add()` en `items.js`. Con `shop: null` solo se consigue como botín.
-- **Sprite nuevo**: dibujalo como grilla de caracteres en `SPRITES` dentro de `sprites.js`
-  (`a`, `b` y `c` toman los colores del elemento).
+- **Monstruo con dibujo nuevo**: agregá una función en `MONSTER_ART` (`js/art/creatures.js`).
+  Los colores `a`, `b` y `c` vienen del elemento, así que el mismo dibujo sirve para todas las variantes.

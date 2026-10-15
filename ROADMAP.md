@@ -30,6 +30,19 @@ Cada fase deja el juego jugable; las siguientes suman sistemas y contenido sin c
 - Tu casa muestra al héroe con el equipo puesto, la ficha de atributos y el inventario.
 - Tablón de misiones en la plaza (se habilita en la Fase 3).
 
+## Fase 1.6 — Pase de arte ✅
+
+- Pueblo que se adapta al ancho de la pantalla: a los costados aparecen el molino con aspas que giran,
+  el trigal con espantapájaros, el estanque con patos, el bosque y la muralla. Pájaros, gallinas, un gato
+  en el techo y mariposas.
+- Interiores a mayor resolución con dueños más grandes y detallados, luz de fuego que tiembla,
+  brasas, vapor, polvo en los rayos de sol, partículas mágicas y estrellas fugaces.
+- Héroe y monstruos redibujados a 32×32 con animación propia (respiración, capa, aleteo, saltos,
+  parpadeo) y detalles según el elemento. Íconos de objetos a 16×16.
+- Fondos de combate por zona con clima animado: hojas, olas y gaviotas, lava y brasas, nieve y niebla,
+  fuegos fatuos. Chispas del elemento y sacudón de pantalla en los golpes fuertes.
+- Cada pantalla tiene su propio fondo en pixel art según el lugar.
+
 ## Fase 2 — Equipo y combate profundo
 
 - Ranuras de escudo, mascota y misceláneo.

@@ -8,9 +8,9 @@ import { heroCanvas, monsterCanvas } from '../sprites.js';
 export function titleScreen(game) {
   const saved = game.player;
   const parade = h('div', { class: 'parade', 'aria-hidden': 'true' },
-    heroCanvas(ITEMS.espada_fuego, ITEMS.cota_malla, 'px bob'),
+    heroCanvas(ITEMS.espada_fuego, ITEMS.cota_malla, 'px', game),
     ...['slime_musgo', 'murcielago_igneo', 'slime_glaciar', 'fantasma']
-      .map((id, i) => monsterCanvas(MONSTERS[id], `px bob bob-${i % 2}`)));
+      .map((id) => monsterCanvas(MONSTERS[id], 'px', game)));
 
   const nameInput = h('input', {
     id: 'hero-name', class: 'input', maxlength: '16', autocomplete: 'off',

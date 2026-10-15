@@ -32,11 +32,7 @@ html, body { margin: 0; }
 
 body {
   background-color: var(--bg);
-  background-image:
-    linear-gradient(45deg, var(--bg-dot) 25%, transparent 25%, transparent 75%, var(--bg-dot) 75%),
-    linear-gradient(45deg, var(--bg-dot) 25%, transparent 25%, transparent 75%, var(--bg-dot) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 8px 8px;
+  image-rendering: pixelated;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 21px;
@@ -287,6 +283,10 @@ button:focus-visible, input:focus-visible, .zone-card:focus-visible, .ware:focus
 .float.is-crit { font-size: clamp(18px, 4.6vw, 30px); }
 .float.is-super { font-size: clamp(17px, 4.2vw, 26px); }
 .float.is-miss { color: var(--muted); font-size: clamp(11px, 2.6vw, 15px); }
+.spark { position: absolute; width: 1.2%; aspect-ratio: 1; box-shadow: 0 0 0 2px rgba(26, 28, 44, 0.6); animation: spark-fly 0.55s steps(5) forwards; }
+@keyframes spark-fly { from { transform: translate(-50%, -50%); opacity: 1; } to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; } }
+.shake { animation: shake 0.3s steps(3); }
+@keyframes shake { 25% { transform: translate(-4px, 2px); } 50% { transform: translate(4px, -2px); } 75% { transform: translate(-2px, -1px); } }
 .burst { position: absolute; width: 13%; height: auto; transform: translate(-50%, -50%); animation: burst 0.45s steps(3) forwards; }
 
 .log { display: grid; gap: 2px; min-height: 112px; align-content: start; padding: 10px 12px; }
@@ -339,7 +339,23 @@ button:focus-visible, input:focus-visible, .zone-card:focus-visible, .ware:focus
 }
 .stage { position: relative; line-height: 0; }
 .stage-canvas { width: 100%; height: auto; display: block; }
-.town-frame { width: min(calc(100% - 14px), max(560px, calc((100dvh - 270px) * 1.6))); margin-inline: auto; }
+#app[data-screen="pueblo"] { max-width: 1800px; }
+#app[data-screen="titulo"], #app[data-screen="mapa"], #app[data-screen="zona"] { max-width: 860px; }
+@media (min-width: 980px) {
+  .battle-screen .screen-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+    grid-template-areas: "enemy log" "scene log" "scene actions";
+    grid-template-rows: auto 1fr auto;
+    align-items: start;
+  }
+  .battle-screen .enemy-panel { grid-area: enemy; }
+  .battle-screen .scene { grid-area: scene; align-self: start; }
+  .battle-screen .log { grid-area: log; align-self: stretch; }
+  .battle-screen .actions { grid-area: actions; }
+}
+#app[data-screen="pueblo"] .hud { max-width: 1180px; width: 100%; margin-inline: auto; }
+.town-frame { width: calc(100% - 14px); margin-inline: auto; }
 
 .hotspot { position: absolute; padding: 0; margin: 0; background: transparent; border: 0; cursor: pointer; }
 .hotspot:focus-visible { outline: 3px dashed var(--gold); outline-offset: -3px; }

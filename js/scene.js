@@ -6,6 +6,32 @@ import { painter, makeCanvas } from './art/paint.js';
 const FPS = 12;
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+// Reloj compartido para los lienzos chicos animados (héroe, monstruos): un solo bucle para todos.
+const animated = new Set();
+let tickerRaf = 0;
+let tickerLast = 0;
+const tickerStart = performance.now();
+
+function tick(now) {
+  if (!animated.size) {
+    tickerRaf = 0;
+    return;
+  }
+  if (now - tickerLast >= 1000 / FPS) {
+    tickerLast = now;
+    const t = (now - tickerStart) / 1000;
+    animated.forEach((draw) => draw(t));
+  }
+  tickerRaf = requestAnimationFrame(tick);
+}
+
+export function animateCanvas(game, canvas, draw) {
+  if (reducedMotion()) return;
+  animated.add(draw);
+  game.addCleanup(() => animated.delete(draw));
+  if (!tickerRaf) tickerRaf = requestAnimationFrame(tick);
+}
+
 export function createStage(game, { w, h, drawStatic, drawFrame, state = {}, className = 'px stage-canvas' }) {
   const base = makeCanvas(w, h);
   drawStatic(painter(base.getContext('2d')));

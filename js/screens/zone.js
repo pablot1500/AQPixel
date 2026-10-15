@@ -31,7 +31,7 @@ export function zoneScreen(game, { zoneId }) {
         const strong = Object.entries(resist).filter(([, v]) => v < 100).map(([el]) => el);
         const kills = p.kills[id] ?? 0;
         return h('article', { class: 'monster-card panel' },
-          monsterCanvas(m, 'px monster-thumb'),
+          monsterCanvas(m, 'px monster-thumb', game),
           h('div', { class: 'monster-info' },
             h('h3', { class: 'monster-name' }, m.name, elementChip(m.element, true)),
             h('p', { class: 'monster-desc' }, m.desc),
