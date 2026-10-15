@@ -1,0 +1,14 @@
+{
+  "name": "aqpixel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RPG de combate por turnos en pixel art para el navegador.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "build": "node tools/build-single.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
+  }
+}
