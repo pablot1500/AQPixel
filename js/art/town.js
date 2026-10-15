@@ -7,6 +7,7 @@ import {
   tree, pine, bush, barrel, crate, lampPost, fence, flowers,
 } from './paint.js';
 import { SPRITES, swatchFor } from '../sprites.js';
+import { drawSittingCat } from './critters.js';
 
 export const TOWN_W = 320;
 export const TOWN_H = 200;
@@ -859,15 +860,7 @@ function drawCoreFrame(P, t) {
   }
 
   // Gato en el techo de la casa
-  const tail = Math.round(Math.sin(t * 2.5) * 2);
-  P.rect(250, 100, 6, 5, INK);
-  P.rect(251, 101, 4, 4, '#ef7d57');
-  P.rect(251, 97, 5, 4, INK);
-  P.rect(252, 98, 3, 3, '#ef7d57');
-  P.px(251, 96, INK);
-  P.px(255, 96, INK);
-  P.px(253, 99, (t % 4) < 0.2 ? '#ef7d57' : INK);
-  P.line(256, 104, 259, 101 + tail, '#d0743a');
+  drawSittingCat(P, 247, 94, t);
 
   // Mariposas sobre los canteros
   [[110, 182], [214, 184], [60, 176]].forEach(([bx, by], i) => {

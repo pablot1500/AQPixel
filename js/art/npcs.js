@@ -1,7 +1,8 @@
 // Retratos de los dueños de cada local, de la cintura para arriba, apoyados en el mostrador.
 // Se redibujan en cada cuadro para parpadear y mover la boca mientras hablan.
 
-import { INK, PAL, shade } from './paint.js';
+import { INK, PAL, shade, tone, mask } from './paint.js';
+import { handPalette, drawFlatHand, drawFist, drawGrip, drawSpreadHand, drawArm } from './hands.js';
 
 export const COUNTER_Y = 140;
 
@@ -24,12 +25,6 @@ function bust(P, cx, o, anim) {
   // Pliegues de la ropa
   P.line(cx - 6, sy + 14, cx - 9, COUNTER_Y - 2, clothesDark);
   P.line(cx + 8, sy + 16, cx + 10, COUNTER_Y - 2, clothesDark);
-  // Brazos que bajan hasta el mostrador
-  for (const dir of [-1, 1]) {
-    const ax = cx + dir * (sw - 7);
-    P.line(ax, sy + 12, ax - dir * 3, COUNTER_Y - 1, INK);
-    P.line(ax + dir, sy + 12, ax - dir * 2, COUNTER_Y - 1, dir < 0 ? clothesLight : clothesDark);
-  }
   o.body?.(P, cx, sy, { skin, skinDark, clothes, clothesDark, clothesLight, sw });
 
   // Cuello con sombra del mentón
@@ -98,17 +93,6 @@ function bust(P, cx, o, anim) {
   o.face?.(P, cx, hy, anim, { skin, skinDark, skinDeep, ey, my, sy });
 }
 
-function hands(P, cx, sw, skin, extra = 0) {
-  const dark = shade(skin, 0.8);
-  for (const dir of [-1, 1]) {
-    const hx = cx + dir * (sw - 9 + extra);
-    P.blob(hx, COUNTER_Y + 3, 5, 3, skin);
-    P.rect(hx - 4, COUNTER_Y + 5, 9, 1, dark);
-    for (let f = -2; f <= 2; f += 2) P.px(hx + f, COUNTER_Y + 1, dark);
-    P.px(hx - dir * 3, COUNTER_Y + 2, shade(skin, 1.08));
-  }
-}
-
 // ---------- Doña Berta, la posadera ----------
 export function drawBerta(P, cx, anim) {
   const hair = '#c2c3cf', hairDark = '#8b8fa3', hairLight = '#e4e4ec', skin = '#f4c99b';
@@ -163,7 +147,32 @@ export function drawBerta(P, cx, anim) {
     },
   };
   bust(P, cx, o, anim);
-  hands(P, cx, o.sw, skin);
+
+  const hand = handPalette(skin);
+  const arm = { 1: tone('#b13e53', 0.72, 1.18), 4: tone('#f4f4f4', 0.82, 1) };
+  // Repasador a cuadros sobre el mostrador
+  for (let y = 0; y < 14; y++) {
+    for (let x = 0; x < 28; x++) {
+      const check = (Math.floor(x / 3) + Math.floor(y / 3)) % 2;
+      P.px(cx - 34 + x + (y > 7 ? 1 : 0), COUNTER_Y + y, check ? '#e04a5f' : '#f4f4f4');
+    }
+  }
+  P.rect(cx - 35, COUNTER_Y - 1, 30, 1, INK);
+  P.rect(cx - 34, COUNTER_Y + 14, 29, 1, INK);
+  for (let i = 0; i < 28; i += 3) P.px(cx - 33 + i, COUNTER_Y + 15, '#f4f4f4');
+  // Brazo izquierdo apoyado; brazo derecho levantando el cucharón
+  drawArm(P, [cx - 24, 110], [cx - 33, 131], [cx - 19, 136], arm);
+  drawFlatHand(P, cx - 19, 135, -1, hand);
+  drawArm(P, [cx + 24, 110], [cx + 34, 130], [cx + 25, 124], arm);
+  // Cucharón de madera
+  P.rect(cx + 24, 94, 4, 50, INK);
+  P.rect(cx + 25, 95, 2, 48, '#a0703c');
+  P.rect(cx + 25, 95, 1, 48, '#c08a50');
+  P.blob(cx + 26, 90, 6, 5, '#a0703c');
+  P.ellipse(cx + 26, 89, 4, 3, '#6e4424');
+  P.ellipse(cx + 25, 88, 2, 1, '#8a5a32');
+  P.px(cx + 23, 87, '#d4a96e');
+  drawGrip(P, cx + 26, 118, -1, hand, 3);
 }
 
 // ---------- Gruñido, el herrero enano ----------
@@ -242,15 +251,32 @@ export function drawGrunido(P, cx, anim) {
     },
   };
   bust(P, cx, o, anim);
-  hands(P, cx, o.sw, skin, 2);
-  // Martillo apoyado en el mostrador
-  P.rect(cx + 36, COUNTER_Y - 18, 4, 22, INK);
-  P.rect(cx + 37, COUNTER_Y - 17, 2, 20, PAL.wood);
-  P.px(cx + 37, COUNTER_Y - 12, PAL.woodLight);
-  P.rect(cx + 30, COUNTER_Y - 26, 16, 9, INK);
-  P.rect(cx + 31, COUNTER_Y - 25, 14, 7, '#8b8fa3');
-  P.rect(cx + 31, COUNTER_Y - 25, 14, 2, '#c2c9d6');
+
+  const hand = handPalette(skin, '#c8b8a8');
+  // Mangas de cota de malla arremangadas: antebrazo peludo y brazal de cuero
+  const arm = { 1: tone('#7d8396', 0.75, 1.2), 4: tone('#7a4b2a', 0.7, 1.25), 5: tone(skin, 0.82, 1.08) };
+  drawArm(P, [cx - 27, 116], [cx - 42, 129], [cx - 22, 135], arm, { upper: 6, fore: 4, bareForearm: true });
+  drawArm(P, [cx + 27, 116], [cx + 46, 130], [cx + 38, 125], arm, { upper: 6, fore: 5, bareForearm: true });
+  // Pelos del antebrazo y correas del brazal
+  for (const [x, y] of [[cx - 38, 130], [cx - 35, 131], [cx - 32, 132], [cx - 36, 133], [cx + 43, 127], [cx + 41, 130]]) {
+    P.px(x, y, beardDark);
+    P.px(x + 1, y - 1, beardDark);
+  }
+  P.line(cx - 27, 131, cx - 26, 138, '#4a2e1a');
+  P.px(cx - 26, 134, PAL.gold);
+  P.px(cx + 40, 125, PAL.gold);
+  // Puño sobre el mostrador
+  drawFist(P, cx - 22, 134, hand);
+  // Martillo parado sobre el mostrador, agarrado del mango
+  P.rect(cx + 36, COUNTER_Y - 18, 4, 24, INK);
+  P.rect(cx + 37, COUNTER_Y - 17, 2, 22, PAL.wood);
+  P.px(cx + 37, COUNTER_Y + 2, PAL.woodLight);
+  P.rect(cx + 30, COUNTER_Y - 27, 16, 10, INK);
+  P.rect(cx + 31, COUNTER_Y - 26, 14, 8, '#8b8fa3');
+  P.rect(cx + 31, COUNTER_Y - 26, 14, 2, '#c2c9d6');
   P.rect(cx + 31, COUNTER_Y - 20, 14, 2, '#5d6175');
+  P.px(cx + 32, COUNTER_Y - 25, '#ffffff');
+  drawGrip(P, cx + 38, 120, -1, hand, 3);
 }
 
 // ---------- Madame Chispas, la hechicera ----------
@@ -323,7 +349,37 @@ export function drawChispas(P, cx, anim, t = 0) {
     },
   };
   bust(P, cx, o, anim);
-  hands(P, cx, o.sw, skin);
+
+  const hand = handPalette(skin, '#b07ad0');
+  const arm = { 1: tone(robe, 0.7, 1.25), 4: tone(PAL.gold, 0.75, 1.1) };
+  // Brazo levantado sobre la bola de cristal, con manga acampanada
+  const wx = cx - 37, wy = 92;
+  drawArm(P, [cx - 22, 114], [cx - 31, 128], [wx, wy + 1], arm, { upper: 5, fore: 4, cuff: false });
+  const bell = mask(22, 22);
+  bell.tri(4, 2, 15, 2, 19, 20, 1).tri(4, 2, 19, 20, 9, 16, 1);
+  bell.draw(P, wx - 6, wy, { 1: tone(robe, 0.7, 1.25) });
+  P.line(wx + 4, wy + 16, wx + 13, wy + 20, PAL.gold);
+  P.line(wx + 13, wy + 20, wx + 9, wy + 4, PAL.gold);
+  drawSpreadHand(P, wx, wy - 2, 1, hand, Math.floor(t * 3) % 2);
+  // Magia que cae de los dedos a la bola
+  for (let i = 0; i < 4; i++) {
+    const ph = (t * 1.1 + i / 4) % 1;
+    const sx = wx - 6 + i * 4 + Math.round(Math.sin(t * 4 + i) * 1);
+    const sy = wy + 12 + Math.round(ph * 8);
+    P.px(sx, sy, ph < 0.5 ? '#f4e0ff' : '#d0a0ff');
+  }
+  // Brazo derecho apoyado, sosteniendo la varita
+  drawArm(P, [cx + 22, 114], [cx + 31, 131], [cx + 22, 134], arm);
+  P.line(cx + 25, 137, cx + 46, 145, INK);
+  P.line(cx + 25, 136, cx + 46, 144, '#5d3a1f');
+  P.line(cx + 26, 136, cx + 45, 143, '#8a5a32');
+  const tw = Math.floor(t * 4) % 2;
+  P.sprite(['..y..', '.yyy.', 'yywyy', '.yyy.', '.y.y.'], { y: PAL.gold, w: '#ffffff' }, cx + 44, 140);
+  if (tw) {
+    P.px(cx + 46, 137, '#ffffff');
+    P.px(cx + 51, 142, '#fff1b8');
+  }
+  drawGrip(P, cx + 27, 129, -1, hand, 3);
   // Búho en el hombro, con plumas y orejitas
   const ox = cx + 38, oy = 104;
   P.blob(ox, oy, 7, 9, '#8a6238');
@@ -408,5 +464,20 @@ export function drawBiceps(P, cx, anim) {
     },
   };
   bust(P, cx, o, anim);
-  hands(P, cx, o.sw + 4, skin, 0);
+
+  const hand = handPalette(skin, '#f0c0a0');
+  // Puño firme sobre el mostrador
+  drawFist(P, cx - 28, COUNTER_Y - 6, hand);
+  // Batido de proteínas en la otra mano
+  const bx = cx + 28;
+  P.rect(bx - 7, 110, 14, 32, INK);
+  P.rect(bx - 6, 116, 12, 25, '#f080b0');
+  P.rect(bx - 6, 116, 3, 25, '#f8a8c8');
+  P.rect(bx + 3, 116, 3, 25, '#c86090');
+  P.rect(bx - 6, 111, 12, 5, '#f4f4f4');
+  P.rect(bx - 6, 111, 12, 1, '#ffffff');
+  P.rect(bx - 1, 104, 3, 7, INK);
+  P.rect(bx, 105, 1, 6, '#e04a5f');
+  for (let i = 0; i < 3; i++) P.px(bx - 4 + i * 4, 120 + i * 5, '#ffffff');
+  drawGrip(P, bx, 121, -1, hand, 8);
 }

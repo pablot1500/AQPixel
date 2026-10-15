@@ -411,3 +411,81 @@ export function flowers(P, x, y, w, h, rand, count = 12) {
     P.px(fx, fy, colors[Math.floor(rand() * colors.length)]);
   }
 }
+
+// ---------- Siluetas con contorno y volumen automáticos ----------
+// Se marcan píxeles en una grilla (cada valor es una región: piel, manga, uña...) y al dibujar
+// se agrega el contorno de afuera y la luz arriba a la izquierda y la sombra abajo a la derecha.
+export function mask(w, h) {
+  const grid = Array.from({ length: h }, () => new Array(w).fill(0));
+  const M = {
+    w,
+    h,
+    set(x, y, v = 1) {
+      x = Math.round(x);
+      y = Math.round(y);
+      if (x >= 0 && y >= 0 && x < w && y < h) grid[y][x] = v;
+      return M;
+    },
+    get(x, y) {
+      return x >= 0 && y >= 0 && x < w && y < h ? grid[y][x] : 0;
+    },
+    rect(x, y, rw, rh, v = 1) {
+      for (let yy = 0; yy < rh; yy++) for (let xx = 0; xx < rw; xx++) M.set(x + xx, y + yy, v);
+      return M;
+    },
+    ellipse(cx, cy, rx, ry, v = 1) {
+      for (let dy = -ry; dy <= ry; dy++) {
+        const dx = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry || 1))));
+        for (let x = -dx; x <= dx; x++) M.set(cx + x, cy + dy, v);
+      }
+      return M;
+    },
+    // Trazo grueso: estampa discos a lo largo del segmento.
+    stroke(x0, y0, x1, y1, r = 1, v = 1) {
+      const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2));
+      for (let i = 0; i <= steps; i++) {
+        const k = i / steps;
+        M.ellipse(Math.round(x0 + (x1 - x0) * k), Math.round(y0 + (y1 - y0) * k), r, r, v);
+      }
+      return M;
+    },
+    tri(ax, ay, bx, by, cx, cy, v = 1) {
+      const minX = Math.floor(Math.min(ax, bx, cx)), maxX = Math.ceil(Math.max(ax, bx, cx));
+      const minY = Math.floor(Math.min(ay, by, cy)), maxY = Math.ceil(Math.max(ay, by, cy));
+      const sign = (px, py, x1, y1, x2, y2) => (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const d1 = sign(x, y, ax, ay, bx, by), d2 = sign(x, y, bx, by, cx, cy), d3 = sign(x, y, cx, cy, ax, ay);
+          const neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
+          if (!(neg && pos)) M.set(x, y, v);
+        }
+      }
+      return M;
+    },
+    // pal: { valor: color | { base, shade, light } }
+    draw(P, ox, oy, pal, { flip = false, outline = INK } = {}) {
+      const at = (x, y) => M.get(flip ? w - 1 - x : x, y);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const v = at(x, y);
+          if (!v) {
+            if (outline && (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1))) P.px(ox + x, oy + y, outline);
+            continue;
+          }
+          const c = pal[v];
+          if (!c) continue;
+          if (typeof c === 'string') {
+            P.px(ox + x, oy + y, c);
+            continue;
+          }
+          const edgeDark = !at(x + 1, y) || !at(x, y + 1);
+          const edgeLight = !at(x - 1, y) || !at(x, y - 1);
+          P.px(ox + x, oy + y, edgeDark ? c.shade ?? c.base : edgeLight ? c.light ?? c.base : c.base);
+        }
+      }
+    },
+  };
+  return M;
+}
+
+export const tone = (base, shadeAmt = 0.8, lightAmt = 1.12) => ({ base, shade: shade(base, shadeAmt), light: shade(base, lightAmt) });

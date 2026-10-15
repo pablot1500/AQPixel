@@ -5,6 +5,7 @@ import { seeded } from '../util.js';
 import { INK, PAL, shade, stones, planks, windowPane, barrel } from './paint.js';
 import { drawBerta, drawGrunido, drawChispas, drawBiceps, COUNTER_Y } from './npcs.js';
 import { drawHero } from './creatures.js';
+import { drawSleepingCat } from './critters.js';
 import { swatchFor } from '../sprites.js';
 import { ELEMENT_IDS } from '../data/elements.js';
 
@@ -766,11 +767,6 @@ export const gymRoom = {
     P.rect(56, 132, 24, 8, INK);
     P.rect(57, 133, 22, 6, '#41a6f6');
     P.rect(57, 136, 22, 1, '#f4f4f4');
-    P.rect(236, 118, 12, 22, INK);
-    P.rect(237, 121, 10, 19, '#f080b0');
-    P.rect(237, 121, 3, 19, '#f8a8c8');
-    P.rect(237, 118, 10, 3, '#f4f4f4');
-    P.rect(241, 113, 2, 5, '#e04a5f');
     P.blob(102, 134, 5, 5, '#c2c9d6');
     P.ellipse(102, 134, 3, 3, '#f4f4f4');
     P.px(102, 133, INK);
@@ -943,21 +939,8 @@ export const homeRoom = {
     P.poly([[112, 117], [116, 106], [126, 106], [130, 117]], INK);
     P.poly([[113, 116], [117, 107], [125, 107], [129, 116]], '#ffcd75');
     P.ellipse(121, 116, 10, 6, 'rgba(255, 220, 140, 0.12)');
-    // Gato durmiendo en la cama (respira y mueve la cola)
-    const breathe = Math.floor(t * 1.5) % 2;
-    P.blob(68, 120 - breathe, 11, 5 + breathe, '#ef7d57');
-    P.dither(62, 117 - breathe, 14, 5, '#d0743a', 0);
-    P.blob(56, 118, 5, 5, '#ef7d57');
-    P.poly([[52, 114], [53, 109], [56, 113]], '#ef7d57');
-    P.poly([[57, 113], [60, 109], [60, 114]], '#ef7d57');
-    P.px(53, 111, '#f0a0a0');
-    P.rect(53, 118, 2, 1, INK);
-    P.rect(57, 118, 2, 1, INK);
-    P.px(55, 120, '#f0a0a0');
-    const tail = Math.round(Math.sin(t * 2) * 3);
-    P.line(78, 122, 86, 116 + tail, '#d0743a');
-    P.line(78, 123, 86, 117 + tail, '#ef7d57');
-    if (Math.floor(t) % 4 < 2) P.text('Z', 62 + Math.floor((t % 1) * 3), 102 - Math.floor((t % 2) * 4), '#f4f4f4');
+    // Gato atigrado durmiendo enroscado sobre la cama
+    drawSleepingCat(P, 42, 100, t);
     // El héroe, con el equipo puesto, al doble de tamaño
     if (state.heroLook) {
       P.ellipse(NPC_X + 8, 190, 22, 3, 'rgba(26, 28, 44, 0.35)');
